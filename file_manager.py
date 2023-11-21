@@ -34,15 +34,29 @@ class FileManagerApp:
         self.file_icon = tk.PhotoImage(file=script_dir / "images" / "file.png").subsample(22, 22)
         self.folder_icon = tk.PhotoImage(file=script_dir / "images" / "folder.png").subsample(22, 22)
 
-        # Botones de eliminar y renombrar en la parte inferior
+        # Botones de funcionalidades
         self.delete_button = ttk.Button(self.root, text="Eliminar", command=self.remove_item)
         self.delete_button.pack(side=tk.BOTTOM, pady=5)
 
         self.rename_button = ttk.Button(self.root, text="Renombrar", command=self.rename_item)
         self.rename_button.pack(side=tk.BOTTOM, pady=5)
+        
+        # Crear botones para crear archivos y carpetas
+        self.create_file_button = ttk.Button(self.root, text="Crear Archivo", command=self.create_file)
+        self.create_file_button.pack(side=tk.BOTTOM, pady=5)
+
+        self.create_folder_button = ttk.Button(self.root, text="Crear Carpeta", command=self.create_folder)
+        self.create_folder_button.pack(side=tk.BOTTOM, pady=5)
+
+        self.copy_button = ttk.Button(self.root, text="Copiar", command=self.copy_item)
+        self.copy_button.pack(side=tk.BOTTOM, pady=5)
+
+        self.paste_button = ttk.Button(self.root, text="Pegar", command=self.paste_item)
+        self.paste_button.pack(side=tk.BOTTOM, pady=5)
 
         # Crear el árbol inicial
         self.create_tree('carpeta_pruebas', "")
+        self.tree.bind("<ButtonRelease-1>", self.handle_click)  # Agregar un evento de clic al árbol
 
     # Escanear un directorio y crear un árbol visual
     def create_tree(self, dir_path, parent):
@@ -138,6 +152,70 @@ class FileManagerApp:
                 if child_values and child_values[0].startswith(old_path):
                     updated_path = child_values[0].replace(old_path, new_path)
                     self.tree.item(child_id, text=os.path.basename(updated_path), values=(updated_path,))
+    
+    # Función para crear archivos
+    def create_file(self):
+        selected_item = self.tree.focus()
+        item_tags = self.tree.item(selected_item)["tags"]
+        current_dir = Path('carpeta_pruebas') if not item_tags else Path(self.tree.item(selected_item)["values"][0])
+
+        new_item_name = simpledialog.askstring("Crear", "Ingrese el nombre del nuevo archivo:")
+        if new_item_name:
+            new_item_path = current_dir / new_item_name
+            new_item_path.touch()
+            self.tree.insert(selected_item, "end", text=new_item_name, values=(str(new_item_path),), tags=("file",), image=self.file_icon)
+            print(f"Archivo creado: {new_item_name}")
+
+    # Función para crear carpetas
+    def create_folder(self):
+        selected_item = self.tree.focus()
+        item_tags = self.tree.item(selected_item)["tags"]
+        current_dir = Path('carpeta_pruebas') if not item_tags else Path(self.tree.item(selected_item)["values"][0])
+
+        new_item_name = simpledialog.askstring("Crear", "Ingrese el nombre de la nueva carpeta:")
+        if new_item_name:
+            new_item_path = current_dir / new_item_name
+            new_item_path.mkdir(parents=True, exist_ok=True)
+            self.tree.insert(selected_item, "end", text=new_item_name, values=(str(new_item_path),), tags=("folder",), image=self.folder_icon)
+            print(f"Carpeta creada: {new_item_name}")
+            
+    # Función para copiar un archivo o carpeta
+    def copy_item(self):
+        global copied_item
+        selected_item = self.tree.focus()
+        item_tags = self.tree.item(selected_item)["tags"]
+        
+        if "file" in item_tags or "folder" in item_tags:
+            copied_item = self.tree.item(selected_item)["values"][0]
+            print("Elemento copiado")
+
+    # Función para pegar el archivo o carpeta copiado
+    def paste_item(self):
+        global copied_item
+        if copied_item:
+            selected_item = self.tree.focus()
+            item_tags = self.tree.item(selected_item)["tags"]
+            
+            if "folder" in item_tags:
+                destination_folder = self.tree.item(selected_item)["values"][0]
+                destination_path = os.path.join(destination_folder, os.path.basename(copied_item))
+                
+                if os.path.isfile(copied_item):
+                    shutil.copy2(copied_item, destination_path)
+                    self.tree.insert(selected_item, "end", text=os.path.basename(copied_item), values=(destination_path,), tags=("file",))
+                    print("Elemento pegado")
+                elif os.path.isdir(copied_item):
+                    shutil.copytree(copied_item, destination_path)
+                    self.tree.insert(selected_item, "end", text=os.path.basename(copied_item), values=(destination_path,), tags=("folder",))
+                    print("Elemento pegado")
+            copied_item = ""
+            
+    # Función para manejar el clic en el árbol
+    def handle_click(self, event):
+        item = self.tree.identify('item', event.x, event.y)
+        if item:  # Si se hace clic en un elemento del árbol
+            self.tree.focus(item)
+            self.tree.selection_set(item)
 
 # Crear la ventana principal
 window = tk.Tk()
