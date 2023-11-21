@@ -41,7 +41,6 @@ class FileManagerApp:
         self.rename_button = ttk.Button(self.root, text="Renombrar", command=self.rename_item)
         self.rename_button.pack(side=tk.BOTTOM, pady=5)
         
-        # Crear botones para crear archivos y carpetas
         self.create_file_button = ttk.Button(self.root, text="Crear Archivo", command=self.create_file)
         self.create_file_button.pack(side=tk.BOTTOM, pady=5)
 
@@ -90,6 +89,7 @@ class FileManagerApp:
         elif os.path.isdir(path):
             shutil.rmtree(path)
 
+    # Buscar elementos
     def search_tree_items(self, parent, search_term):
         for child in self.tree.get_children(parent):
             item_text = self.tree.item(child, "text")
@@ -99,7 +99,6 @@ class FileManagerApp:
             else:
                 self.tree.detach(child)
 
-    # Eliminar un elemento del sistema de archivos
     def search_items(self):
         search_term = self.search_entry.get()
         self.tree.delete(*self.tree.get_children())
@@ -202,12 +201,13 @@ class FileManagerApp:
                 
                 if os.path.isfile(copied_item):
                     shutil.copy2(copied_item, destination_path)
-                    self.tree.insert(selected_item, "end", text=os.path.basename(copied_item), values=(destination_path,), tags=("file",))
+                    self.tree.insert(selected_item, "end", text=os.path.basename(copied_item), values=(destination_path,), tags=("file",), image=self.file_icon)
                     print("Elemento pegado")
                 elif os.path.isdir(copied_item):
                     shutil.copytree(copied_item, destination_path)
-                    self.tree.insert(selected_item, "end", text=os.path.basename(copied_item), values=(destination_path,), tags=("folder",))
+                    self.tree.insert(selected_item, "end", text=os.path.basename(copied_item), values=(destination_path,), tags=("folder",), image=self.folder_icon)
                     print("Elemento pegado")
+
             copied_item = ""
             
     # Función para manejar el clic en el árbol
@@ -216,10 +216,17 @@ class FileManagerApp:
         if item:  # Si se hace clic en un elemento del árbol
             self.tree.focus(item)
             self.tree.selection_set(item)
+    
+    # Función para manejar el clic derecho y deseleccionar
+    def handle_right_click(self, event):
+        item = self.tree.identify('item', event.x, event.y)
+        if item:  # Si se hizo clic derecho en un elemento del árbol
+            self.tree.selection_remove(item)
 
 # Crear la ventana principal
 window = tk.Tk()
 app = FileManagerApp(window)
+window.bind("<Button-3>", app.handle_right_click)  # Vincular clic derecho al método de deselección
 window.mainloop()
 
 
