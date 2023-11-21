@@ -1,0 +1,79 @@
+import csv
+import matplotlib.pyplot as plt
+
+# Leer el laberinto desde un archivo CSV
+def leer_laberinto(nombre_archivo):
+    laberinto = []
+    with open(nombre_archivo, 'r') as archivo:
+        lector_csv = csv.reader(archivo)
+        for fila in lector_csv:
+            laberinto.append([int(c) for c in fila])
+    return laberinto
+
+# Encontrar todas las soluciones en el laberinto
+def encontrar_soluciones(laberinto, x, y, solucion_actual, soluciones, entradas, salidas):
+    n = len(laberinto)
+    m = len(laberinto[0])
+
+    if x < 0 or x >= n or y < 0 or y >= m or laberinto[x][y] == 1:
+        return
+
+    if (x, y) in salidas and len(solucion_actual) > 1:
+        soluciones.append(list(solucion_actual))
+        return
+
+    laberinto[x][y] = 1  # Marcar la casilla actual como visitada
+
+    for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+        ni, nj = x + dx, y + dy
+        solucion_actual.append((ni, nj))
+        encontrar_soluciones(laberinto, ni, nj, solucion_actual, soluciones, entradas, salidas)
+        solucion_actual.pop()
+
+    laberinto[x][y] = 0  # Restaurar la casilla
+
+# Encontrar todas las entradas y salidas en el laberinto
+def encontrar_entradas_y_salidas(laberinto):
+    n = len(laberinto)
+    m = len(laberinto[0])
+    entradas = []
+    salidas = []
+
+    for i in range(n):
+        for j in range(m):
+            if laberinto[i][j] == 0:
+                if i == 0 or i == n - 1 or j == 0 or j == m - 1:
+                    entradas.append((i, j))
+                else:
+                    salidas.append((i, j))
+
+    return entradas, salidas
+
+# Validar el laberinto
+def validar_laberinto(laberinto, entradas, salidas):
+    return len(entradas) >= 1 and len(salidas) >= 1
+
+# Presentar gráficamente el laberinto en modo interactivo
+def mostrar_laberinto(laberinto):
+    plt.ion()  # Activar el modo interactivo
+    plt.imshow(laberinto, cmap='gray', interpolation='none')
+    plt.pause(0.01)  # Agregar una pausa pequeña para permitir la actualización de la ventana
+
+if __name__ == "__main__":
+    nombre_archivo = "laberinto.csv"
+    laberinto = leer_laberinto(nombre_archivo)
+    entradas, salidas = encontrar_entradas_y_salidas(laberinto)
+
+    if validar_laberinto(laberinto, entradas, salidas):
+        mostrar_laberinto(laberinto)
+        soluciones = []
+
+        for entrada in entradas:
+            encontrar_soluciones(laberinto, entrada[0], entrada[1], [entrada], soluciones, entradas, salidas)
+
+        print(f"El laberinto tiene {len(soluciones)} soluciones.")
+    else:
+        print("El laberinto no es válido.")
+
+    plt.ioff()
+    plt.show()
